@@ -91,7 +91,7 @@ No installation is necessary, simply have all the following files all in a folde
 #### Altium Designer
 
 Build the viewer once (`make` in `GUI`, or `make release` for a single file `GUI/Release/iPCB.html`), open
-`iPCB.html` in Chrome, Chromium, Edge or Firefox and click **Open Altium export folder** (or drop the folder on the
+`iPCB.html` in Chrome, Chromium or Edge (tested in Chromium; Firefox untested) and click **Open Altium export folder** (or drop the folder on the
 page). Select the folder the OutJob writes, the one holding `ODB/`, `BOM/`, `Pick Place/`, ... The files are read in
 the browser; nothing is uploaded.
 
