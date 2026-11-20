@@ -4,6 +4,10 @@
 var Point          = require("./render/point.js").Point
 var render_lowlevel = require("./render/render_lowlevel.js");
 
+// Selection outline width and the halo on each side of it, in board units (mm)
+const OUTLINE_WIDTH = 0.2;
+const HALO_WIDTH    = 0.05;
+
 class BoundingBox
 {
     constructor(x0, y0, x1, y1, angle)
@@ -38,9 +42,10 @@ class BoundingBox
     }
 
     /*
-        Selection marker, sized in screen pixels so that it reads the same at every zoom:
-        a padded outline with a contrasting halo, and for parts that are small on screen
-        a locator ring with four ticks.
+        Selection marker: an outline of OUTLINE_WIDTH board units (mm) just outside the
+        part, with a thin contrasting halo; it scales with the zoom like the board.
+        Optionally a locator ring with four ticks, sized in screen pixels, around parts
+        that are small on screen.
         colors: { marker, halo }
     */
     RenderMarker(guiContext, colors, withRing)
@@ -55,7 +60,8 @@ class BoundingBox
         let px = 2 / scale;                 // board units per CSS pixel
         let w  = Math.abs(this.point2.x - this.point0.x);
         let h  = Math.abs(this.point2.y - this.point0.y);
-        let gap = 3 * px;
+        // Outline centred half its width outside the box: the inner edge touches the part.
+        let gap = OUTLINE_WIDTH / 2;
 
         guiContext.save();
         guiContext.translate(this.centerPoint.x, this.centerPoint.y);
@@ -69,10 +75,10 @@ class BoundingBox
         guiContext.fill();
         guiContext.globalAlpha = 1;
         guiContext.strokeStyle = colors.halo;
-        guiContext.lineWidth   = 5 * px;
+        guiContext.lineWidth   = OUTLINE_WIDTH + 2 * HALO_WIDTH;
         guiContext.stroke();
         guiContext.strokeStyle = colors.marker;
-        guiContext.lineWidth   = 2.5 * px;
+        guiContext.lineWidth   = OUTLINE_WIDTH;
         guiContext.stroke();
 
         // Locator ring for parts smaller than about 30 px on screen
