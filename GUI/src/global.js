@@ -509,6 +509,18 @@ function getDimUnselected(){
     return dimUnselected;
 }
 
+/* Locator ring around selected parts that are small on screen (off by default) */
+let locatorRing = false;
+
+function setLocatorRing(value)
+{
+    locatorRing = value;
+}
+
+function getLocatorRing(){
+    return locatorRing;
+}
+
 /************************************************/
 
 /*************************************************
@@ -613,6 +625,7 @@ module.exports = {
     setAdditionalAttributes    , getAdditionalAttributes    ,
     setHighlightPin1           , getHighlightPin1           ,
     setDimUnselected           , getDimUnselected           ,
+    setLocatorRing             , getLocatorRing             ,
     setLastClickedRef          , getLastClickedRef          ,
     setCombineValues           , getCombineValues           ,
     setHidePlacedParts         , getHidePlacedParts         ,

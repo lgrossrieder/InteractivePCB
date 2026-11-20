@@ -62,7 +62,7 @@ function DrawHighlitedModules(isViewFront, layer, scalefactor, refs)
     }
     // Markers last, so that neighbouring pads do not cover them.
     // Locator rings only for a few parts: many of them overlap and clutter the board.
-    let withRing = (selected.length <= 6);
+    let withRing = globalData.getLocatorRing() && (selected.length <= 6);
     for (let part of selected)
     {
         part.RenderMarker(guiContext, isViewFront, withRing);

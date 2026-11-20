@@ -34,6 +34,14 @@ dimUnselectedCheckbox.onchange = function()
     render.drawHighlights();
 };
 
+const locatorRingCheckbox = document.getElementById("locatorRingCheckbox");
+locatorRingCheckbox.onchange = function()
+{
+    globalData.setLocatorRing(locatorRingCheckbox.checked);
+    globalData.writeStorage("locatorRing", locatorRingCheckbox.checked);
+    render.drawHighlights();
+};
+
 const dragCheckbox = document.getElementById("dragCheckbox");
 dragCheckbox.checked=function()
 {

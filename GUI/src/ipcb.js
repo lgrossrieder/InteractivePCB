@@ -968,6 +968,10 @@ function InitPCB(pcbdata)
     document.getElementById("dimUnselectedCheckbox").checked = dimUnselected;
     globalData.setDimUnselected(dimUnselected);
 
+    let locatorRing = globalData.readStorage("locatorRing") === "true";
+    document.getElementById("locatorRingCheckbox").checked = locatorRing;
+    globalData.setLocatorRing(locatorRing);
+
     let highlightPin1 = globalData.readStorage("highlightpin1") === "true";
     document.getElementById("highlightpin1Checkbox").checked = highlightPin1;
     globalData.setHighlightPin1(highlightPin1);
