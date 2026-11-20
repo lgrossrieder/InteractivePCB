@@ -4,9 +4,8 @@
 var Point          = require("./render/point.js").Point
 var render_lowlevel = require("./render/render_lowlevel.js");
 
-// Selection outline width and the halo on each side of it, in board units (mm)
+// Selection outline width in board units (mm)
 const OUTLINE_WIDTH = 0.2;
-const HALO_WIDTH    = 0.05;
 
 class BoundingBox
 {
@@ -42,8 +41,9 @@ class BoundingBox
     }
 
     /*
-        Selection marker: an outline of OUTLINE_WIDTH board units (mm) just outside the
-        part, with a thin contrasting halo; it scales with the zoom like the board.
+        Selection marker: an outline of OUTLINE_WIDTH board units (mm) centred on the
+        part's box, so it scales with the zoom like the board and outlines of neighbouring
+        parts only touch where the parts are closer than OUTLINE_WIDTH.
         Optionally a locator ring with four ticks, sized in screen pixels, around parts
         that are small on screen.
         colors: { marker, halo }
@@ -60,23 +60,17 @@ class BoundingBox
         let px = 2 / scale;                 // board units per CSS pixel
         let w  = Math.abs(this.point2.x - this.point0.x);
         let h  = Math.abs(this.point2.y - this.point0.y);
-        // Outline centred half its width outside the box: the inner edge touches the part.
-        let gap = OUTLINE_WIDTH / 2;
-
         guiContext.save();
         guiContext.translate(this.centerPoint.x, this.centerPoint.y);
         guiContext.rotate((this.angle || 0) * Math.PI / 180);
         guiContext.lineJoin = "round";
 
         guiContext.beginPath();
-        guiContext.rect(-w / 2 - gap, -h / 2 - gap, w + 2 * gap, h + 2 * gap);
+        guiContext.rect(-w / 2, -h / 2, w, h);
         guiContext.globalAlpha = 0.18;
         guiContext.fillStyle   = colors.marker;
         guiContext.fill();
         guiContext.globalAlpha = 1;
-        guiContext.strokeStyle = colors.halo;
-        guiContext.lineWidth   = OUTLINE_WIDTH + 2 * HALO_WIDTH;
-        guiContext.stroke();
         guiContext.strokeStyle = colors.marker;
         guiContext.lineWidth   = OUTLINE_WIDTH;
         guiContext.stroke();
