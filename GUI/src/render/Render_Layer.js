@@ -93,7 +93,21 @@ class Render_Layer
 
 
 
+/* Removes all layer canvases (before another board is loaded). */
+function RemoveAllLayerCanvases()
+{
+    for (let id of ["front-canvas-list", "back-canvas-list"])
+    {
+        let list = document.getElementById(id);
+        for (let canvas of Array.from(list.querySelectorAll("canvas[id^='layer_']")))
+        {
+            list.removeChild(canvas);
+        }
+    }
+    layerZNumber = 0;
+}
+
 module.exports =
 {
-    Render_Layer
+    Render_Layer, RemoveAllLayerCanvases
 };

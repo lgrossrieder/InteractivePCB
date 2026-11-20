@@ -1,6 +1,8 @@
 "use strict";
 
-var globalData = require("../global.js");
+var globalData     = require("../global.js");
+var render         = require("../render.js");
+var handlers_mouse = require("../handlers_mouse.js");
 
 
 
@@ -12,14 +14,13 @@ class Table_TestPointEntry
     {
 
         let tr = document.createElement("TR");
-
-        // trace name
+        // test point name
         let td = document.createElement("TD");
-        td.innerHTML = testPoint.name
+        td.textContent = testPoint.name;
         tr.appendChild(td);
 
         td = document.createElement("TD");
-        td.innerHTML = testPoint.expected;
+        td.textContent = testPoint.expected || "";
         tr.appendChild(td);
 
         td = document.createElement("TD");
@@ -27,13 +28,26 @@ class Table_TestPointEntry
         tr.appendChild(td);
 
         td = document.createElement("TD");
-        td.innerHTML = testPoint.description;
+        td.textContent = testPoint.description || "";
         tr.appendChild(td);
 
-
-
-
-
+        // Clicking a row highlights the test point on the board.
+        tr.style.cursor = "pointer";
+        tr.onclick = function (event)
+        {
+            if (event.target && event.target.isContentEditable)
+            {
+                return;
+            }
+            for (let row of document.querySelectorAll("#testpointbody tr.highlighted"))
+            {
+                row.classList.remove("highlighted");
+            }
+            tr.classList.add("highlighted");
+            globalData.setHighlightedRefs([testPoint.name]);
+            handlers_mouse.ShowPartInfo(testPoint.name);
+            render.drawHighlights();
+        };
         return tr;
     }
 }

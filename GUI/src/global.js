@@ -15,6 +15,13 @@ let layer_list = new Map();
 *************************************************/
 let storage = undefined;
 const storagePrefix = "INTERACTIVE_PCB__"
+// Settings and checkbox states are kept per board (project name and revision).
+let storageScope = "";
+
+function setStorageScope(value)
+{
+    storageScope = value || "";
+}
 
 function initStorage ()
 {
@@ -47,7 +54,7 @@ function readStorage(key)
 {
     if (storage)
     {
-        return storage.getItem(storagePrefix + "#" + key);
+        return storage.getItem(storagePrefix + storageScope + "#" + key);
     }
     else
     {
@@ -59,7 +66,7 @@ function writeStorage(key, value)
 {
     if (storage)
     {
-        storage.setItem(storagePrefix + "#" + key, value);
+        storage.setItem(storagePrefix + storageScope + "#" + key, value);
     }
     else
     {
@@ -121,7 +128,7 @@ function setHighlightedRefs(refs, isMulti)
             highlightedRefs = [];
         }
 
-        let newRefs = ConvertRangesToReferenceDesignators(refs);
+        let newRefs = Array.isArray(refs) ? refs : ConvertRangesToReferenceDesignators(refs);
         for(let ref of newRefs)
         {
             highlightedRefs.push(ref);
@@ -568,6 +575,7 @@ function GetBoardRotation()
 
 
 module.exports = {
+    setStorageScope,
     pcb_traces, pcb_layers, pcb_parts, render_layers, layer_list, pcb_testpoints,
     initStorage                , readStorage                , writeStorage          ,
     setHighlightedRefs         , getHighlightedRefs         ,

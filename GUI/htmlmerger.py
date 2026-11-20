@@ -16,7 +16,7 @@ Usage:
 
 def getFileContent (strFilepath):
   content = ""
-  with open (strFilepath, "r") as file:
+  with open (strFilepath, "r", encoding="utf-8") as file:
     content = file.read ()
   return content
 
@@ -81,12 +81,15 @@ class HtmlMerger(HTMLParser):
 
     self._result += "<" + tag + " "
 
+    # <script src=... data-external>: left as a reference (e.g. pcbdata.json next to the page)
+    keepExternal = (tag == "script" and any (a[0] == "data-external" for a in attrs))
+
     for attr in attrs:
       key = attr[0]
       value = attr[1]
 
       # main work: read source content and add it to the file
-      if (tag == "script" and key == "src"):
+      if (tag == "script" and key == "src" and not keepExternal):
         #self._result += "type='text/javascript'"
         strReferencedFile = self._getFullFilepath (value)
         if (not os.path.isfile (strReferencedFile)):
@@ -117,6 +120,10 @@ class HtmlMerger(HTMLParser):
         continue
 
 
+
+      if (value is None):
+        self._result += key + " "
+        continue
 
       # choose the right quotes
       if ('"' in value):
@@ -173,7 +180,7 @@ def merge(strInfile, strOutfile):
 
 
   # write result
-  with open (strOutfile, "w") as file:
+  with open (strOutfile, "w", encoding="utf-8") as file:
     file.write (content_changed)
 
 

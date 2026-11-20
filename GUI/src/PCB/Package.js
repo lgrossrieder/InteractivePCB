@@ -6,15 +6,18 @@ var Package_Pad_Rectangle  = require("./Package_Pad_Rectangle.js").Package_Pad_R
 var Package_Pad_Oblong     = require("./Package_Pad_Oblong.js").Package_Pad_Oblong;
 var Package_Pad_Round      = require("./Package_Pad_Round.js").Package_Pad_Round;
 var Package_Pad_Octagon    = require("./Package_Pad_Octagon.js").Package_Pad_Octagon;
-var Package_Pad_SMD    = require("./Package_Pad_SMD.js").Package_Pad_SMD;
+var Package_Pad_SMD        = require("./Package_Pad_SMD.js").Package_Pad_SMD;
+var Package_Pad_Polygon    = require("./Package_Pad_Polygon.js").Package_Pad_Polygon;
 
 var colormap           = require("../colormap.js");
+var globalData         = require("../global.js");
 
 class Package
 {
     constructor(iPCB_JSON_Package)
     {
-        this.boundingBox = new BoundingBox(iPCB_JSON_Package.bounding_box.x0, iPCB_JSON_Package.bounding_box.y0, iPCB_JSON_Package.bounding_box.x1, iPCB_JSON_Package.bounding_box.y1, iPCB_JSON_Package.bounding_box.angle);
+        let bb = iPCB_JSON_Package.bounding_box;
+        this.boundingBox = new BoundingBox(bb.x0, bb.y0, bb.x1, bb.y1, bb.angle || 0);
 
         this.pads = [];
 
@@ -40,6 +43,10 @@ class Package
             {
                 this.pads.push(new Package_Pad_SMD(pad));
             }
+            else if (pad.type == "polygon")
+            {
+                this.pads.push(new Package_Pad_Polygon(pad));
+            }
             else
             {
                 console.log("ERROR: Unsupported pad type ", pad.type);
@@ -47,27 +54,41 @@ class Package
         }
     }
 
-    Render(guiContext, isViewFront, location, isSelected)
+    /*
+        state: { selected, placed, dnp }
+          selected  part is highlighted from the BOM, a click or the test point table
+          placed    every "Placed" checkbox of the part is ticked
+          dnp       part is not fitted / not in the BOM
+    */
+    Render(guiContext, isViewFront, location, state)
     {
+        if (typeof state !== "object")
+        {
+            state = { selected: !!state, placed: false, dnp: false };
+        }
+        let onThisSide = ((location == "F") && isViewFront) || ((location == "B") && !isViewFront);
+
         for (let pad of this.pads)
         {
-            if(    (((location == "F") && (pad.IsSMD()) &&  isViewFront))
-                || (((location == "B") && (pad.IsSMD()) && !isViewFront))
-                || (pad.IsTHT())
-            )
+            if ((pad.IsSMD() && onThisSide) || pad.IsTHT())
             {
-                let color = colormap.GetPadColor(pad.IsPin1(), isSelected, false);
+                let isPin1 = pad.IsPin1() && (state.selected || globalData.getHighlightPin1());
+                let color = colormap.GetPadColor(isPin1, state.selected, state.placed, state.dnp);
                 pad.Render(guiContext, color);
             }
         }
 
-        if(    (isSelected && (location == "F") && isViewFront)
-            || (isSelected && (location == "B") && !isViewFront)
-          )
+        if (onThisSide && (state.selected || globalData.getDebugMode()))
         {
-            let color = colormap.GetBoundingBoxColor(isSelected, false);
+            let color = colormap.GetBoundingBoxColor(state.selected, state.placed && state.selected);
             this.boundingBox.Render(guiContext, color);
         }
+    }
+
+    /* True when the board point (x, y) is inside the (rotated) bounding box. */
+    Contains(x, y)
+    {
+        return this.boundingBox.Contains(x, y);
     }
 }
 

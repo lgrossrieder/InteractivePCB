@@ -37,6 +37,8 @@ function createLayerCheckboxChangeHandler(layer, isFront)
                 globalData.writeStorage("checkbox_layer_back_" + layer.name + "_visible", "true");
             }
         }
+        render.RenderPCB(isFront ? globalData.GetAllCanvas().front : globalData.GetAllCanvas().back);
+        render.drawHighlights();
     }
 }
 
@@ -51,11 +53,13 @@ class Table_LayerEntry
         this.activeColorSpanElement = document.createElement("Span");
 
         // Assumes that all layers are visible by default.
+        let defaultFront = (layer.visible_front === undefined) ? true : layer.visible_front;
+        let defaultBack  = (layer.visible_back  === undefined) ? true : layer.visible_back;
         if (globalData.readStorage( "checkbox_layer_front_" + this.layerName + "_visible" ) == null)
         {
-            this.visible_front = true;
-            globalData.layer_list.get(this.layerName)[globalData.render_layers].SetVisibility(true,true);
-            globalData.writeStorage("checkbox_layer_front_" + this.layerName + "_visible", "true");
+            this.visible_front = defaultFront;
+            globalData.layer_list.get(this.layerName)[globalData.render_layers].SetVisibility(true, defaultFront);
+            globalData.writeStorage("checkbox_layer_front_" + this.layerName + "_visible", defaultFront ? "true" : "false");
         }
         else if ( globalData.readStorage( "checkbox_layer_front_" + this.layerName + "_visible" ) == "true")
         {
@@ -70,9 +74,9 @@ class Table_LayerEntry
 
         if (globalData.readStorage( "checkbox_layer_back_" + this.layerName + "_visible" ) == null)
         {
-            this.visible_back = true;
-            globalData.layer_list.get(this.layerName)[globalData.render_layers].SetVisibility(false,true);
-            globalData.writeStorage("checkbox_layer_back_" + this.layerName + "_visible", "true");
+            this.visible_back = defaultBack;
+            globalData.layer_list.get(this.layerName)[globalData.render_layers].SetVisibility(false, defaultBack);
+            globalData.writeStorage("checkbox_layer_back_" + this.layerName + "_visible", defaultBack ? "true" : "false");
         }
         // Assumes that all layers are visible by default.
         else if (globalData.readStorage( "checkbox_layer_back_" + this.layerName + "_visible" ) == "true")
@@ -162,7 +166,7 @@ class Table_LayerEntry
 
         if(colorCode.length > 7)
         {
-            console.log("WARNING: Only RGB color codes supported", colorCode);
+            // The colour picker has no alpha; the layer keeps its alpha until a colour is picked.
             colorCode = colorCode.substring(0, 7);
             input.value = colorCode;
             input.defaultValue = colorCode;

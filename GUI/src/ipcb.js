@@ -19,6 +19,7 @@ var PCB_Layer = require("./PCB/PCB_Layer.js").PCB_Layer;
 var PCB_Part  = require("./PCB/PCB_Part.js").PCB_Part;
 
 var Render_Layer = require("./render/Render_Layer.js").Render_Layer;
+var RemoveAllLayerCanvases = require("./render/Render_Layer.js").RemoveAllLayerCanvases;
 var version           = require("./version.js");
 
 var Fullscreen = require("./fullscreen.js");
@@ -52,57 +53,43 @@ function setDarkMode(value)
     globalData.writeStorage("darkmode", value);
 
 
-    const sheets = document.styleSheets[0].rules;
-    for (var i = 0, len = sheets.length; i < len; i++)
+    // The layer table eye icons are inverted by the ".dark .layer_checkbox" rule in index.css
+    // (reading document.styleSheets is blocked for pages opened from file://).
+
+    if (globalData.GetAllCanvas())
     {
-        if (sheets[i].selectorText == '.layer_checkbox')
-        {
-            if (value)
-            {
-                 sheets[i].style['filter'] = 'invert(100%)';
-            }
-            else
-            {
-                 sheets[i].style['filter'] = 'invert(0%)';
-            }
-
-        }
+        render.RenderPCB(globalData.GetAllCanvas().front);
+        render.RenderPCB(globalData.GetAllCanvas().back);
     }
+}
 
-    render.RenderPCB(globalData.GetAllCanvas().front);
-    render.RenderPCB(globalData.GetAllCanvas().back);
+/* Arrow keys move the highlight through the visible BOM rows. */
+function highlightRelativeRow(step)
+{
+    let handlers = globalData.getHighlightHandlers().filter(function (h)
+    {
+        let row = document.getElementById(h.id);
+        return row && row.style.display != "none";
+    });
+    if (handlers.length == 0)
+    {
+        return;
+    }
+    let current = globalData.getCurrentHighlightedRowId();
+    let index = (current.length > 0) ? handlers.findIndex(h => h.id == current[current.length - 1]) : -1;
+    let next = (index < 0) ? (step > 0 ? 0 : handlers.length - 1) : Math.min(handlers.length - 1, Math.max(0, index + step));
+    handlers[next].handler({ type: "click" });
+    handlers_mouse.smoothScrollToRow(handlers[next].id);
 }
 
 function highlightPreviousRow(event)
 {
-    if (globalData.getCurrentHighlightedRowId().length == 1)
-    {
-        for (let i = 0; i < globalData.getHighlightHandlers().length - 1; i++)
-        {
-            if (globalData.getHighlightHandlers()[i + 1].id == globalData.getCurrentHighlightedRowId())
-            {
-                globalData.getHighlightHandlers()[i].handler(event);
-                break;
-            }
-        }
-        handlers_mouse.smoothScrollToRow(globalData.getCurrentHighlightedRowId());
-    }
+    highlightRelativeRow(-1);
 }
 
 function highlightNextRow(event)
 {
-    if (globalData.getCurrentHighlightedRowId().length == 1)
-    {
-        for (let i = 1; i < globalData.getHighlightHandlers().length; i++)
-        {
-            if (globalData.getHighlightHandlers()[i - 1].id == globalData.getCurrentHighlightedRowId())
-            {
-                globalData.getHighlightHandlers()[i].handler(event);
-                break;
-            }
-        }
-        handlers_mouse.smoothScrollToRow(globalData.getCurrentHighlightedRowId());
-    }
+    highlightRelativeRow(1);
 }
 
 function modulesClicked(references)
@@ -167,38 +154,39 @@ function populateMetadata()
 
     if(metadata.revision == undefined)
     {
-        document.getElementById("revision").innerHTML = "";
+        document.getElementById("revision").textContent = "";
     }
     else
     {
-        document.getElementById("revision").innerHTML = "Revision: " + metadata.revision.toString();
+        document.getElementById("revision").textContent = "Revision: " + metadata.revision.toString()
+            + ((pcbdata.metadata && pcbdata.metadata.variant && pcbdata.metadata.variant != "DEFAULT") ? "  (variant " + pcbdata.metadata.variant + ")" : "");
     }
 
     if(metadata.company == undefined)
     {
-        document.getElementById("company").innerHTML = "";
+        document.getElementById("company").textContent = "";
     }
     else
     {
-        document.getElementById("company").innerHTML  = metadata.company;
+        document.getElementById("company").textContent  = metadata.company;
     }
 
     if(metadata.project_name == undefined)
     {
-        document.getElementById("title").innerHTML = "";
+        document.getElementById("title").textContent = "";
     }
     else
     {
-        document.getElementById("title").innerHTML = metadata.project_name;
+        document.getElementById("title").textContent = metadata.project_name;
     }
 
     if(metadata.date == undefined)
     {
-        document.getElementById("filedate").innerHTML = "";
+        document.getElementById("filedate").textContent = "";
     }
     else
     {
-        document.getElementById("filedate").innerHTML = metadata.date;
+        document.getElementById("filedate").textContent = metadata.date;
     }
 }
 
@@ -257,8 +245,21 @@ function setAdditionalAttributes(value)
 // XXX: None of this seems to be working.
 document.onkeydown = function(e)
 {
+    // Keys typed into the filters, settings or the test point table are not shortcuts.
+    let target = e.target || {};
+    if (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName || "") || target.isContentEditable)
+    {
+        return;
+    }
     switch (e.key)
     {
+        case " ":
+            if (typeof pcbdata !== "undefined" && pcbdata)
+            {
+                bomTable.TogglePlacedOnHighlightedRow();
+                e.preventDefault();
+            }
+            break;
         case "ArrowUp":
             highlightPreviousRow(e);
             e.preventDefault();
@@ -474,7 +475,7 @@ function Create_Traces(pcbdata)
 {
     globalData.pcb_traces = [];
     /* Create trace objects from JSON file */
-    for(let trace of pcbdata.board.traces)
+    for(let trace of (pcbdata.board.traces || []))
     {
         globalData.pcb_traces.push(new PCB_Trace(trace));
     }
@@ -484,7 +485,7 @@ function Create_TestPoints(pcbdata)
 {
     globalData.pcb_testpoints = [];
     /* Create test point objects from JSON file */
-    for(let testpoint of pcbdata.test_points)
+    for(let testpoint of (pcbdata.test_points || []))
     {
         globalData.pcb_testpoints.push(new PCB_TestPoint(testpoint));
     }
@@ -502,7 +503,17 @@ function Create_Parts(pcbdata)
 
 function Create_Configuration(pcbdata)
 {
-    for(let config of pcbdata.configuration)
+    // Settings in the board file are defaults: they apply until the user changes them.
+    let setDefault = function (key, value)
+    {
+        if (globalData.readStorage(key) === null)
+        {
+            globalData.writeStorage(key, value);
+            return true;
+        }
+        return false;
+    };
+    for(let config of (pcbdata.configuration || []))
     {
         if(config.category=="color")
         {
@@ -512,23 +523,23 @@ function Create_Configuration(pcbdata)
         {
             if( config.name =="dark_mode")
             {
-                globalData.writeStorage("darkmode", config.value == 1);
+                setDefault("darkmode", config.value == 1);
             }
             else if(config.name =="hight_first_pin")
             {
-                globalData.writeStorage("highlightpin1", config.value == 1);
+                setDefault("highlightpin1", config.value == 1);
             }
             else if(config.name =="hide_placed_parts")
             {
-                globalData.writeStorage("hidePlacedParts", config.value == 1);
+                setDefault("hidePlacedParts", config.value == 1);
             }
             else if(config.name =="combine_values")
             {
-                globalData.writeStorage("combineValues", config.value == 1);
+                setDefault("combineValues", config.value == 1);
             }
             else if(config.name =="bom_pcb_layout")
             {
-                globalData.writeStorage("bomlayout", config.value);
+                setDefault("bomlayout", config.value);
             }
             else if(config.name =="additional_table")
             {
@@ -559,17 +570,11 @@ function Create_Configuration(pcbdata)
             }
             else if(config.name =="bom_checkboxes")
             {
-                let element = document.getElementById("bomCheckboxes");
-                element.value = config.value;
-                globalData.setBomCheckboxes(config.value);
-                globalData.writeStorage("bomCheckboxes", config.value);
+                setDefault("bomCheckboxes", config.value);
             }
             else if(config.name =="bom_part_attributes")
             {
-                let element = document.getElementById("additionalAttributes");
-                element.value = config.value;
-                globalData.setAdditionalAttributes(config.value);
-                globalData.writeStorage("additionalAttributes", config.value);
+                setDefault("additionalAttributes", config.value);
             }
             else
             {
@@ -584,41 +589,19 @@ function Create_Configuration(pcbdata)
 
 }
 
-function LoadPCB(pcbdata)
+/* Replaces the board shown by another one (file or folder opened in the page). */
+function LoadPCB(newPcbData)
 {
-    // Update COnfiguration data
-    Create_Configuration(pcbdata);
-
-    // Remove all items from BOM table
-    // And delete internal bom structure
+    window.pcbdata = newPcbData;
     bomTable.clearBOMTable();
     pcb.DeleteBOM();
-    // Create a new BOM table
-    pcb.CreateBOM(pcbdata);
-
-    for (let layer of globalData.layer_list)
-    {
-        renderCanvas.ClearCanvas(layer[1][globalData.render_layers].GetCanvas(true));
-        renderCanvas.ClearCanvas(layer[1][globalData.render_layers].GetCanvas(false));
-    }
-
-    layerTable.clearLayerTable(); // <--- Actually viewed layer table
-    Create_Layers(pcbdata); // <--- BAckground layer information
-    rightSideTable.populateRightSideScreenTable();
-
-    // Update Metadata
-    let metadata = Metadata.GetInstance();
-    metadata.Set(pcbdata.metadata);
-    populateMetadata();
-
-    // Create traces
-    Create_Traces(pcbdata);
-
-    // Create test points
-    Create_TestPoints(pcbdata);
-
-    // Parts
-    Create_Parts(pcbdata);
+    RemoveAllLayerCanvases();
+    globalData.layer_list = new Map();
+    globalData.setHighlightedRefs(null);
+    globalData.setCurrentHighlightedRowId(null, false);
+    globalData.setLastClickedRef(undefined);
+    handlers_mouse.ShowPartInfo(null);
+    InitPCB(newPcbData);
 }
 
 function changeBomLayout(layout)
@@ -892,50 +875,41 @@ function toggleFullScreen()
 
 //XXX: I would like this to be in the html functions js file. But this function needs to be
 //     placed here, otherwise the application rendering becomes very very weird.
-window.onload = function(e)
+function StorageScopeFor(data)
 {
-    console.time("on load");
+    let m = data.metadata || {};
+    return (m.project_name || "") + "|" + (m.revision || "") + "|" + (m.variant || "");
+}
 
-    // Must occur early for storage parameters to be loaded. If not loaded early then
-    // incorrect parameters may be used.
-    globalData.initStorage();
+function InitPCB(pcbdata)
+{
+    // Settings and checkboxes are stored per board.
+    globalData.setStorageScope(StorageScopeFor(pcbdata));
+    document.getElementById("emptyState").style.display = "none";
 
     pcb.CreateBOM(pcbdata);
     let metadata = Metadata.GetInstance();
     metadata.Set(pcbdata.metadata);
 
-    let versionNumberHTML       = document.getElementById("softwareVersion");
-    versionNumberHTML.innerHTML = version.GetVersionString();
-    console.log(version.GetVersionString());
-
-
-
-
     Create_Traces(pcbdata);
     Create_TestPoints(pcbdata);
-    Create_Layers(pcbdata);
     Create_Parts(pcbdata);
+    // Colours and default settings before the layers and tables are built.
     Create_Configuration(pcbdata);
+    Create_Layers(pcbdata);
 
     rightSideTable.populateRightSideScreenTable();
+    // Show only the selected table of the right panel (layers, traces or test points).
+    Render_RightScreenTable();
 
     // Must be called after loading PCB as rendering required the bounding box information for PCB
     render.initRender();
 
-
-    //cleanGutters();
-
     populateMetadata();
 
-    // Create canvas layers. One canvas per pcb layer
-
-
-
-    // Set up mouse event handlers
+    // Set up mouse event handlers (assigned as onX properties, so a reload replaces them)
     handlers_mouse.addMouseHandlers(document.getElementById("frontcanvas"), globalData.GetAllCanvas().front);
     handlers_mouse.addMouseHandlers(document.getElementById("backcanvas") , globalData.GetAllCanvas().back);
-
-    console.log(globalData.readStorage("bomlayout"))
 
     globalData.setBomLayout(globalData.readStorage("bomlayout"));
     if (!globalData.getBomLayout())
@@ -966,44 +940,33 @@ window.onload = function(e)
         globalData.setAdditionalAttributes("");
     }
 
-    if (globalData.readStorage("redrawOnDrag") === "false")
-    {
-        document.getElementById("dragCheckbox").checked = false;
-        globalData.setRedrawOnDrag(false);
-    }
+    document.getElementById("bomCheckboxes").value        = globalData.getBomCheckboxes();
+    document.getElementById("additionalAttributes").value = globalData.getAdditionalAttributes();
 
-    if (globalData.readStorage("darkmode") === "true")
-    {
-        document.getElementById("darkmodeCheckbox").checked = true;
-        setDarkMode(true);
-    }
+    let redrawOnDrag = globalData.readStorage("redrawOnDrag") !== "false";
+    document.getElementById("dragCheckbox").checked = redrawOnDrag;
+    globalData.setRedrawOnDrag(redrawOnDrag);
 
-    if (globalData.readStorage("hidePlacedParts") === "true")
-    {
-        document.getElementById("hidePlacedParts").checked = true;
-        globalData.setHidePlacedParts(true);
-    }
+    let darkMode = globalData.readStorage("darkmode") === "true";
+    document.getElementById("darkmodeCheckbox").checked = darkMode;
+    setDarkMode(darkMode);
 
-    if (globalData.readStorage("highlightpin1") === "true")
-    {
-        document.getElementById("highlightpin1Checkbox").checked = true;
-        globalData.setHighlightPin1(true);
-        render.RenderPCB(globalData.GetAllCanvas().front);
-        render.RenderPCB(globalData.GetAllCanvas().back);
-    }
+    let hidePlaced = globalData.readStorage("hidePlacedParts") === "true";
+    document.getElementById("hidePlacedParts").checked = hidePlaced;
+    globalData.setHidePlacedParts(hidePlaced);
+
+    let highlightPin1 = globalData.readStorage("highlightpin1") === "true";
+    document.getElementById("highlightpin1Checkbox").checked = highlightPin1;
+    globalData.setHighlightPin1(highlightPin1);
 
     // If this is true then combine parts and display quantity
-    if (globalData.readStorage("combineValues") === "true")
-    {
-        document.getElementById("combineValues").checked = true;
-        globalData.setCombineValues(true);
-    }
+    let combine = globalData.readStorage("combineValues") === "true";
+    document.getElementById("combineValues").checked = combine;
+    globalData.setCombineValues(combine);
 
-    if (globalData.readStorage("debugMode") === "true")
-    {
-        document.getElementById("debugMode").checked = true;
-        globalData.setDebugMode(true);
-    }
+    let debugMode = globalData.readStorage("debugMode") === "true";
+    document.getElementById("debugMode").checked = debugMode;
+    globalData.setDebugMode(debugMode);
 
     // Read the value of board rotation from local storage
     let boardRotation = globalData.readStorage("boardRotation");
@@ -1027,11 +990,35 @@ window.onload = function(e)
 
     // Triggers render
     changeBomLayout(globalData.getBomLayout());
-    console.timeEnd("on load");
+    document.body.dataset.boardLoaded = (pcbdata.metadata && pcbdata.metadata.project_name) || "board";
+}
+
+//XXX: The page set up has to run from here, otherwise the application rendering becomes very weird.
+window.onload = function(e)
+{
+    // Must occur early for storage parameters to be loaded. If not loaded early then
+    // incorrect parameters may be used.
+    globalData.initStorage();
+
+    let versionNumberHTML       = document.getElementById("softwareVersion");
+    versionNumberHTML.innerHTML = version.GetVersionString();
+
+    if (typeof pcbdata !== "undefined" && pcbdata)
+    {
+        InitPCB(pcbdata);
+    }
+    else
+    {
+        // No board embedded or next to the page: ask for an Altium export folder.
+        document.getElementById("emptyState").style.display = "";
+    }
 };
 
-window.onresize = render.resizeAll;
-window.matchMedia("print").addListener(render.resizeAll);
+window.onresize = function ()
+{
+    if (globalData.GetAllCanvas()) { render.resizeAll(); }
+};
+window.matchMedia("print").addListener(window.onresize);
 
 module.exports = {
     changeBomLayout        , setDarkMode      , changeCanvasLayout,

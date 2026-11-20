@@ -20,47 +20,84 @@ function handleMouseDown(e, layerdict)
 
 function smoothScrollToRow(rowid)
 {
-    document.getElementById(rowid).scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-        inline: "nearest"
-    });
+    let row = document.getElementById(rowid);
+    if (row)
+    {
+        row.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest"
+        });
+    }
 }
 
+/* Short description of a part for the info line above the board. */
+function ShowPartInfo(ref)
+{
+    let info = document.getElementById("partInfo");
+    if (!info) { return; }
+    let part = globalData.pcb_parts.find(p => p.name == ref);
+    if (!part)
+    {
+        info.textContent = "";
+        return;
+    }
+    let text = part.name + "  " + (part.value || "");
+    let description = part.attributes.get("description");
+    if (description) { text += "  –  " + description; }
+    text += "  (" + (part.location == "B" ? "bottom" : "top");
+    if (part.dnp) { text += ", not fitted"; }
+    else if (!part.inBom) { text += ", not in BOM"; }
+    text += ")";
+    info.textContent = text;
+}
+
+/*
+    Click on the board: several parts may overlap; repeated clicks cycle through them. A part with a
+    BOM row selects that row, any other part (fiducial, test point, not fitted) is highlighted alone.
+*/
 function modulesClicked(event, references)
 {
     let lastClickedIndex = references.indexOf(globalData.getLastClickedRef());
     let ref = references[(lastClickedIndex + 1) % references.length];
+    globalData.setLastClickedRef(ref);
+    ShowPartInfo(ref);
     for (let handler of globalData.getHighlightHandlers())
     {
         if (handler.refs.indexOf(ref) >= 0)
         {
-            globalData.setLastClickedRef(ref);
-            handler.handler(event);
+            // Row handlers act on clicks only; the board click arrives as a mouseup.
+            handler.handler({ type: "click", ctrlKey: event.ctrlKey, shiftKey: false });
             smoothScrollToRow(globalData.getCurrentHighlightedRowId());
-            break;
+            return;
         }
     }
+    for (let row of globalData.getCurrentHighlightedRowId())
+    {
+        let el = document.getElementById(row);
+        if (el) { el.classList.remove("highlighted"); }
+    }
+    globalData.setCurrentHighlightedRowId(null, false);
+    globalData.setHighlightedRefs([ref]);
 }
+
 function bboxScan(layer, x, y)
 {
     let result = [];
-    for (let part of pcbdata.parts)
+    for (let part of globalData.pcb_parts)
     {
-        if( part.location == layer)
+        if (part.location == layer && part.package.Contains(x, y))
         {
-            let b = part.package.bounding_box;
-            if (    (x > b.x0 )
-                        && (x < b.x1 )
-                        && (y > b.y0 )
-                        && (y < b.y1 )
-            )
-            {
-                result.push(part.name);
-            }
+            result.push(part.name);
         }
     }
-    return result;
+    // Smallest part first, so a resistor inside a connector outline can be picked.
+    let area = (name) =>
+    {
+        let b = globalData.pcb_parts.find(p => p.name == name).package.boundingBox;
+        return Math.abs((b.point2.x - b.point0.x) * (b.point2.y - b.point0.y));
+    };
+    return result.sort((a, b) => area(a) - area(b));
 }
 
 
@@ -208,15 +245,13 @@ function addMouseHandlers(div, layerdict)
     };
 
 
-    for (var element of [div])
+    div.oncontextmenu = function(e)
     {
-        element.addEventListener("contextmenu", function(e)
-        {
-            e.preventDefault();
-        }, false);
-    }
+        e.preventDefault();
+    };
 }
 
 module.exports = {
+    ShowPartInfo,
     addMouseHandlers, smoothScrollToRow
 };

@@ -7,6 +7,8 @@ class Part {
         this.value      = value;
         this.foorptint  = footprint;
         this.reference  = reference;
+        // Designators of this BOM row (one, or several when values are combined)
+        this.refs       = [reference];
         this.location   = location;
         this.attributes = attributes;
         // TODO: Checkbox should be part of bom_table and not pat

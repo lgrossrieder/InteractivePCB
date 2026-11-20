@@ -25,6 +25,18 @@ class BoundingBox
 
     }
 
+    /* True when board point (x, y) lies inside the box (rotated by angle degrees about its centre). */
+    Contains(x, y)
+    {
+        let a  = -(this.angle || 0) * Math.PI / 180;
+        let dx = x - this.centerPoint.x;
+        let dy = y - this.centerPoint.y;
+        let lx = dx * Math.cos(a) - dy * Math.sin(a);
+        let ly = dx * Math.sin(a) + dy * Math.cos(a);
+        return    (lx >= Math.min(this.point0.x, this.point2.x)) && (lx <= Math.max(this.point0.x, this.point2.x))
+               && (ly >= Math.min(this.point0.y, this.point2.y)) && (ly <= Math.max(this.point0.y, this.point2.y));
+    }
+
     Render(guiContext, color)
     {
         // First fill the box.

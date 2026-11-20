@@ -27,7 +27,7 @@ clean:
 Build/build.stamp: Build/index.js Build/index.css Build/iPCB.html
 	touch $@
 
-Build/index.js_pretty: $(JS_DEPS)/.stamp $(JS_SRCS) Build/pcbdata.json index.css | Build
+Build/index.js_pretty: $(JS_DEPS)/.stamp $(JS_SRCS) index.css | Build
 	$(BROWSERIFY) ./src/ipcb.js ./src/render.js ./src/htmlFunctions.js ./src/pcb.js ./src/colormap.js --debug --outfile $@
 
 Build/index.js: Build/index.js_pretty | Build
@@ -42,11 +42,11 @@ Build/iPCB.html: iPCB.html | Build
 	cp $< $@
 	#npx html-minifier --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true $<  > $@
 
-Build/pcbdata.json: ../Examples/Eagle/Simple_BRD/pcbdata.json | Build
-	cat $< | sed 's/var pcbdata =//g' | python -m json.tool | sed  '1s;^;var pcbdata =;' > $@
+# Board data is not part of the build: the page asks for an Altium export folder, or reads a
+# pcbdata.json placed next to it (node tools/altium2ipcb.js <folder> -o Build/pcbdata.json).
 
 Release/iPCB.html: Build/iPCB.html Build/index.css Build/index.js | Release
-	python htmlmerger.py $< $@
+	python3 htmlmerger.py $< $@
 
 Release:
 	mkdir $@
@@ -64,6 +64,11 @@ Release/Plugins/Eagle/ipcb.ulp: ../Plugins/Eagle/ipcb.ulp | Release/Plugins/Eagl
 	cp $< $@
 
 print-%  : ; @echo $* = $($*)
+
+# Quick checks of the Altium importer (needs only node)
+.PHONY: test
+test:
+	node --test tests/
 
 .PHONY: release
 release: ./Release/iPCB.html Release/Plugins/Eagle/ipcb.ulp | Release Release/Plugins/Eagle

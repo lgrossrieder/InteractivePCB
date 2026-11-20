@@ -7,10 +7,10 @@
     <title>Interactive PCB</title>
     <link href="index.css" rel="stylesheet">
 
-    <!-- This is a really hacky way to import the json data from
-    an external file. Need to find a way to do this at the javascript level and
-    not the html level -->
-    <script type="text/javascript" src="pcbdata.json"></script>
+    <!-- Board data: a pcbdata.json next to this page, or embedded by tools/altium2ipcb.js --html.
+         Without it the page asks for an Altium export folder. data-external keeps htmlmerger.py
+         from inlining it. -->
+    <script type="text/javascript" src="pcbdata.json" data-external></script>
 </head>
 
 <body>
@@ -94,25 +94,49 @@
                 <tbody>
                     <tr>
                         <td id="title" class="title" style="width: 70%">
-                            Title
                         </td>
                         <td id="revision" class="title" style="width: 30%">
-                            Revision
                         </td>
                     </tr>
                     <tr>
                         <td id="company">
-                            Company Name
                         </td>
                         <td id="filedate">
-                            Date
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <div id="FileSelect">
-            <input type="file" id="pcbFileInput" accept=".json">
+        <div id="FileSelect" class="hideonprint">
+            <label class="load-button" title="Select the Altium OutJob output folder (with ODB, BOM, Pick Place ...)">
+                <input type="file" id="altiumFolderInput" webkitdirectory directory multiple>
+                Open Altium export folder
+            </label>
+            <label class="load-button" title="pcbdata.json, or an ODB++ .tgz / .zip">
+                <input type="file" id="pcbFileInput" accept=".json,.tgz,.zip,.gz,.tar">
+                Open file
+            </label>
+            <span id="loadStatus"></span>
+            <span id="partInfo"></span>
+        </div>
+        <details id="loadMessages" hidden>
+            <summary id="loadMessagesSummary"></summary>
+            <ul id="loadMessagesList"></ul>
+        </details>
+    </div>
+
+    <div id="emptyState" style="display: none">
+        <div class="empty-box">
+            <h2>Interactive PCB</h2>
+            <p>Open the output folder of an Altium OutJob, or drop it here.</p>
+            <label class="load-button load-button-big">
+                <input type="file" id="altiumFolderInputEmpty" webkitdirectory directory multiple>
+                Open Altium export folder
+            </label>
+            <p class="empty-hint">Used from the folder: <b>ODB++</b> (board, copper, silkscreen, pads; folder,
+            .tgz or .zip), <b>BOM</b> (.xlsx/.csv: description, manufacturer, fitted) and the <b>test point</b>
+            report. Without ODB++ the <b>pick and place</b> file gives part positions only.<br>
+            Nothing is uploaded: the files are read in this browser.</p>
         </div>
     </div>
 

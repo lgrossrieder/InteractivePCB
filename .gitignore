@@ -1,5 +1,8 @@
 # Specify filepatterns you want git to ignore.
-Gui/Build/*
-Gui/Release/*
+GUI/Build/
+GUI/Release/
 GUI/node_modules
 *.b#*
+# board data written by tools/altium2ipcb.js during development
+pcbdata.json
+!Examples/**/pcbdata.json

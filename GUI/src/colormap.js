@@ -10,7 +10,8 @@ var ColorMap = new Map(
         ["BboundingBox_Placed"    ,["#40D040"   , "#40D040"]],
         ["BboundingBox_Highlited" ,["#D04040"   , "#D04040"]],
         ["BboundingBox_Debug"     ,["#2977ff"   , "#2977ff"]],
-        ["Pad_Default"            ,["#878787"   , "#878787"]],
+        ["Pad_Default"            ,["#B0B0B0"   , "#B0B0B0"]],
+        ["Pad_DNP"                ,["#505050"   , "#505050"]],
         ["Pad_Pin1"               ,["#ffb629"   , "#ffb629"]],
         ["Pad_IsHighlited"        ,["#D04040"   , "#D04040"]],
         ["Pad_IsPlaced"           ,["#40D040"   , "#40D040"]],
@@ -80,9 +81,14 @@ function GetBoundingBoxColor(isHighlited, isPlaced)
 }
 
 
-function GetPadColor(isPin1, isHighlited, isPlaced)
+function GetPadColor(isPin1, isHighlited, isPlaced, isDnp)
 {
-    if(isPin1)
+    if(isDnp && !isHighlited)
+    {
+        let traceColorMap = ColorMap.get("Pad_DNP");
+        return traceColorMap[GetColorPalette()];
+    }
+    else if(isPin1)
     {
         let traceColorMap = ColorMap.get("Pad_Pin1");
         return traceColorMap[GetColorPalette()];
@@ -95,6 +101,11 @@ function GetPadColor(isPin1, isHighlited, isPlaced)
     else if(isHighlited)
     {
         let traceColorMap = ColorMap.get("Pad_IsHighlited");
+        return traceColorMap[GetColorPalette()];
+    }
+    else if(isPlaced)
+    {
+        let traceColorMap = ColorMap.get("Pad_IsPlaced");
         return traceColorMap[GetColorPalette()];
     }
     else

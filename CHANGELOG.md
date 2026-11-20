@@ -1,6 +1,28 @@
 
 # Changelog
 
+## Altium fork (unreleased)
+
+### Added
+- Altium Designer import in the page: open (or drop) an OutJob output folder; ODB++ (folder, .tgz, .zip, also nested
+  in a .zip), BOM (.xlsx/.csv), pick and place fallback, test point report. `GUI/src/altium/`.
+- `GUI/tools/altium2ipcb.js`: same import from the command line, writes pcbdata.json or one self-contained HTML page.
+- Polygon pads, filled polygons (with holes, negative features) and circles on layers.
+- Assembly: Space marks the highlighted BOM row placed and moves to the next; placed parts drawn green; "Hide placed
+  parts" works; not fitted parts and parts not in the BOM are drawn dark and not listed; clicking a part shows its
+  description; test point rows highlight their test point.
+- Settings and checkboxes stored per board; layer visibility defaults per side from the board data.
+- `make test` (node --test) for the importer.
+
+### Fixed
+- Page failed to start without test points or configuration in the data, and when opened from file:// with dark
+  mode (stylesheet access).
+- Loading another board (previously `clearLayerTable` did not exist); layer canvases are rebuilt.
+- Designators that do not end in their number (R610A) broke BOM ranges and highlighting.
+- Board click and arrow keys did not select BOM rows; highlights vanished after a layout change.
+- Round pads were drawn with the drill as radius; part hit test ignored rotation.
+- Release build no longer embeds the example board data.
+
 ## Version 2.3
 
 ### Fixed 

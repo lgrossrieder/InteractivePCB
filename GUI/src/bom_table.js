@@ -3,41 +3,54 @@ var globalData = require("./global.js");
 var pcb        = require("./pcb.js");
 var render     = require("./render.js");
 
+/*
+    Checkbox states are stored per designator ("checkbox_placed_R12"), so they survive switching
+    between combined and single rows; a row is ticked when all of its parts are.
+*/
+function checkboxKey(checkbox, ref)
+{
+    return "checkbox_" + checkbox.toLowerCase() + "_" + ref;
+}
+
+function IsRowChecked(checkbox, bomentry)
+{
+    return bomentry.refs.every(ref => globalData.readStorage(checkboxKey(checkbox, ref)) == "true");
+}
+
+function SetRowChecked(checkbox, bomentry, checked)
+{
+    for (let ref of bomentry.refs)
+    {
+        globalData.writeStorage(checkboxKey(checkbox, ref), checked ? "true" : "false");
+    }
+}
+
+/* Redraws board and table and keeps the highlighted parts highlighted. */
+function RefreshKeepingHighlight()
+{
+    let refs = globalData.getHighlightedRefs().slice();
+    render.RenderPCB(globalData.GetAllCanvas().front);
+    render.RenderPCB(globalData.GetAllCanvas().back);
+    populateBomTable();
+    globalData.setHighlightedRefs(refs);
+    for (let handler of globalData.getHighlightHandlers())
+    {
+        if (handler.refs.some(r => refs.indexOf(r) >= 0))
+        {
+            let row = document.getElementById(handler.id);
+            if (row) { row.classList.add("highlighted"); }
+            globalData.setCurrentHighlightedRowId(handler.id, true);
+        }
+    }
+    render.drawHighlights();
+}
+
 function createCheckboxChangeHandler(checkbox, bomentry)
 {
     return function(event)
     {
-        if(bomentry.checkboxes.get(checkbox))
-        {
-            bomentry.checkboxes.set(checkbox,false);
-            globalData.writeStorage("checkbox" + "_" + checkbox.toLowerCase() + "_" + bomentry.reference, "false");
-        }
-        else
-        {
-            bomentry.checkboxes.set(checkbox,true);
-            globalData.writeStorage("checkbox" + "_" + checkbox.toLowerCase() + "_" + bomentry.reference, "true");
-        }
-        // Save currently highlited row
-        let rowid = globalData.getCurrentHighlightedRowId();
-        // Redraw the canvas
-        render.RenderPCB(globalData.GetAllCanvas().front);
-        render.RenderPCB(globalData.GetAllCanvas().back);
-        // Redraw the BOM table
-        populateBomTable();
-        // Render current row so its highlighted
-        document.getElementById(rowid).classList.add("highlighted");
-        // Set current selected row global variable
-        if(event.ctrlKey)
-        {
-            globalData.setCurrentHighlightedRowId(rowid, true);
-        }
-        else
-        {
-            globalData.setCurrentHighlightedRowId(rowid, false);
-        }
-
-        // If highlighted then a special color will be used for the part.
-        render.drawHighlights(IsCheckboxClicked(globalData.getCurrentHighlightedRowId(), "placed"));
+        SetRowChecked(checkbox, bomentry, !IsRowChecked(checkbox, bomentry));
+        RefreshKeepingHighlight();
     };
 }
 
@@ -84,62 +97,45 @@ function NumericCompare(a,b)
 function ConvertReferenceDesignatorsToRanges(ReferenceDesignations)
 {
     /*
-        Extract reference designation from the list.
-        It is assumed the reference designation is  teh same across all
-        in the input list.
-
-        In addition also extract the numeric value in a separate list.
+        Runs of three or more consecutive numbers with the same prefix are shown as a range
+        (C1,C2,C3 -> C1-C3). Designators that do not end in their number (R610A) are listed as is.
+        Adapted from KiCost.
     */
-    let numbers    = ReferenceDesignations.map(x => parseInt(x.split(/(\d+$)/)[1],10));
-    // Only extract reference designation from first element as all others are assumed to be equal.
-    let designator = ReferenceDesignations[0].split(/(\d+$)/)[0];
-
-    /*
-        Sort all numbers to be increasing
-    */
-    numbers.sort(NumericCompare);
-
-    /*
-        Following code was adapted from KiCost project. Code ported to JavaScript from Python.
-        Removed a check for sub parts as iPCB deals with parts from a PCB perspective and not
-        schematic perspective, this do not need sub part checking.
-    */
-
-    // No ranges found yet since we just started.
-    let rangedReferenceDesignations = [];
-    // First possible range is at the start of the list of numbers.
-    let rangeStart = 0;
-
-    // Go through list of numbers looking for 3 or more sequential numbers.
-    while(rangeStart < numbers.length)
+    let groups = new Map();
+    let result = [];
+    for (let ref of ReferenceDesignations.slice().sort(pcb.CompareDesignators))
     {
-        // Current range starts off as a single number.
-        let numRange = numbers[rangeStart]
-        // The next possible start of a range.
-        let nextRangeStart = rangeStart + 1;
-
-        // Look for sequences of three or more sequential numbers.
-        for(let rangeEnd = (rangeStart+2); rangeEnd < numbers.length; rangeEnd++)
+        let m = ref.match(/^([^\d]*)(\d+)$/);
+        if (!m)
         {
-            if(rangeEnd - rangeStart != numbers[rangeEnd] - numbers[rangeStart])
-            {
-                // Non-sequential numbers found, so break out of loop.
-                break;
-            }
-            else
-            {
-                // Otherwise, extend the current range.
-                numRange = String(numbers[rangeStart]) + "-" + String(numbers[rangeEnd])
-                // 3 or more sequential numbers found, so next possible range must start after this one.
-                nextRangeStart = rangeEnd + 1
-            }
+            result.push(ref);
+            continue;
         }
-        // Append the range (or single number) just found to the list of range.
-        rangedReferenceDesignations.push(designator + numRange)
-        // Point to the start of the next possible range and keep looking.
-        rangeStart = nextRangeStart
+        if (!groups.has(m[1])) { groups.set(m[1], []); }
+        groups.get(m[1]).push(parseInt(m[2], 10));
     }
-    return rangedReferenceDesignations
+    for (let [designator, numbers] of groups)
+    {
+        numbers.sort(NumericCompare);
+        let rangeStart = 0;
+        while (rangeStart < numbers.length)
+        {
+            let numRange = String(numbers[rangeStart]);
+            let nextRangeStart = rangeStart + 1;
+            for (let rangeEnd = rangeStart + 2; rangeEnd < numbers.length; rangeEnd++)
+            {
+                if (rangeEnd - rangeStart != numbers[rangeEnd] - numbers[rangeStart])
+                {
+                    break;
+                }
+                numRange = String(numbers[rangeStart]) + "-" + String(numbers[rangeEnd]);
+                nextRangeStart = rangeEnd + 1;
+            }
+            result.push(designator + numRange);
+            rangeStart = nextRangeStart;
+        }
+    }
+    return result.sort(pcb.CompareDesignators);
 }
 
 function populateBomBody()
@@ -158,69 +154,46 @@ function populateBomBody()
         bomtable = bomtable.slice().sort(globalData.getBomSortFunction());
     }
 
-    for (let i in bomtable)
+    // Placed rows are left out when "Hide placed parts" is on (only with a "Placed" column).
+    let checkboxNames = globalData.getBomCheckboxes().split(",").map(c => c.trim()).filter(c => c);
+    let placedName = checkboxNames.find(c => c.toLowerCase() == "placed");
+    if (globalData.getHidePlacedParts() && placedName)
+    {
+        bomtable = bomtable.filter(entry => !IsRowChecked(placedName, entry));
+    }
+
+    for (let i = 0; i < bomtable.length; i++)
     {
         let bomentry = bomtable[i];
-        let references = ConvertReferenceDesignatorsToRanges(bomentry.reference.split(',')).join(',');
+        let references = ConvertReferenceDesignatorsToRanges(bomentry.refs).join(", ");
 
         let tr = document.createElement("TR");
         let td = document.createElement("TD");
-        let rownum = +i + 1;
+        let rownum = i + 1;
         tr.id = "bomrow" + rownum;
         td.textContent = rownum;
         tr.appendChild(td);
 
         // Checkboxes
-        let additionalCheckboxes = globalData.getBomCheckboxes().split(",");
-        for (let checkbox of additionalCheckboxes)
+        for (let checkbox of checkboxNames)
         {
-            checkbox = checkbox.trim();
-            if (checkbox)
-            {
-                td = document.createElement("TD");
-                let input = document.createElement("input");
-                input.type = "checkbox";
-                input.onchange = createCheckboxChangeHandler(checkbox, bomentry);
-                // read the value in from local storage
-
-                if(globalData.readStorage( "checkbox" + "_" + checkbox.toLowerCase() + "_" + bomentry.reference ) == "true")
-                {
-                    bomentry.checkboxes.set(checkbox,true)
-                }
-                else
-                {
-                    // Needed for when parts combined by value
-                    if(bomentry.checkboxes.set !== undefined)
-                    {
-                        bomentry.checkboxes.set(checkbox,false)
-                    }
-                }
-
-            // Needed for when parts combined by value
-            if(bomentry.checkboxes.get !== undefined)
-            {
-                    if(bomentry.checkboxes.get(checkbox))
-                    {
-                        input.checked = true;
-                    }
-                    else
-                    {
-                        input.checked = false;
-                    }
-            }
-                td.appendChild(input);
-                tr.appendChild(td);
-            }
+            td = document.createElement("TD");
+            let input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = IsRowChecked(checkbox, bomentry);
+            input.onchange = createCheckboxChangeHandler(checkbox, bomentry);
+            td.appendChild(input);
+            tr.appendChild(td);
         }
 
         // References
         td = document.createElement("TD");
-        td.innerHTML = references;
+        td.textContent = references;
         tr.appendChild(td);
 
         // Value
         td = document.createElement("TD");
-        td.innerHTML = bomentry.value;
+        td.textContent = bomentry.value;
         tr.appendChild(td);
 
         // Attributes
@@ -231,7 +204,7 @@ function populateBomBody()
             if (x)
             {
                 td = document.createElement("TD");
-                td.innerHTML =pcb.getAttributeValue(bomentry, x.toLowerCase());
+                td.textContent = pcb.getAttributeValue(bomentry, x.toLowerCase());
                 tr.appendChild(td);
             }
         }
@@ -242,19 +215,17 @@ function populateBomBody()
             td.textContent = bomentry.quantity;
             tr.appendChild(td);
         }
-        bom.appendChild(tr);
-
 
         bom.appendChild(tr);
-        let handler = createRowHighlightHandler(tr.id, references);
+        let handler = createRowHighlightHandler(tr.id, bomentry.refs);
 
-         tr.onclick = handler;
-         tr.onmousemove = handler;
-         globalData.pushHighlightHandlers({
-             id: tr.id,
-             handler: handler,
-             refs: references
-         });
+        tr.onclick = handler;
+        tr.onmousemove = handler;
+        globalData.pushHighlightHandlers({
+            id: tr.id,
+            handler: handler,
+            refs: bomentry.refs
+        });
     }
 }
 
@@ -264,7 +235,6 @@ function createRowHighlightHandler(rowid, refs)
     {
         if(event.shiftKey || (event.type =="click"))
         {
-            console.log(event)
             /*
                 If control key pressed pressed, then keep original rows highlighted and
                 highlight new selected row.
@@ -466,7 +436,53 @@ function FilterByAttribute(s)
     }
 }
 
+/*
+    Ticks the "Placed" box of the highlighted row(s) (or clears it when all are ticked) and
+    moves the highlight to the next row: one key press per part number while assembling.
+*/
+function TogglePlacedOnHighlightedRow()
+{
+    let checkboxNames = globalData.getBomCheckboxes().split(",").map(c => c.trim()).filter(c => c);
+    let placedName = checkboxNames.find(c => c.toLowerCase() == "placed");
+    let rows = globalData.getCurrentHighlightedRowId();
+    if (!placedName || rows.length == 0)
+    {
+        return;
+    }
+    let entries = [];
+    let lastIndex = -1;
+    let handlers = globalData.getHighlightHandlers();
+    for (let row of rows)
+    {
+        let index = handlers.findIndex(h => h.id == row);
+        if (index < 0) { continue; }
+        lastIndex = Math.max(lastIndex, index);
+        entries.push(handlers[index].refs);
+    }
+    let allRefs = [].concat.apply([], entries);
+    let checked = allRefs.every(ref => globalData.readStorage(checkboxKey(placedName, ref)) == "true");
+    for (let ref of allRefs)
+    {
+        globalData.writeStorage(checkboxKey(placedName, ref), checked ? "false" : "true");
+    }
+    // After ticking, move on to the row below the last highlighted one (found again by its
+    // designators, so this also works when placed rows are hidden).
+    let next = checked ? null : handlers[lastIndex + 1];
+    if (next)
+    {
+        globalData.setHighlightedRefs(next.refs.slice());
+    }
+    RefreshKeepingHighlight();
+    let current = globalData.getCurrentHighlightedRowId();
+    if (current.length)
+    {
+        let el = document.getElementById(current[0]);
+        if (el) { el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" }); }
+    }
+}
+
 module.exports = {
+    TogglePlacedOnHighlightedRow,
     setBomCheckboxes, populateBomTable,
     setRemoveBOMEntries, clearBOMTable, Filter, FilterByAttribute
 };

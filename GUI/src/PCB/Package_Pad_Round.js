@@ -29,8 +29,8 @@ class Package_Pad_Round extends Package_Pad
 
         render_lowlevel.Circle( 
             guiContext,
-            centerPoint,                         
-            this.drill, 
+            centerPoint,
+            this.diameter/2,
             renderOptions
         ); 
 

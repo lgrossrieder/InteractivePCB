@@ -5,6 +5,8 @@
 [InteractivePCB](https://github.com/oceanofthelost/InteractivePCB) is a hard fork of [InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) with a focus interactions with a PCB beyond a bill of materials. To that end, InteractivePCB lets one interaction with individual PCB layers, aid in PCB assembly by showing similar parts, and also provide an interactive BOM.
 
 Currently InteractivePCB is designed to work with EagleCAD with minor support for FusionElectonics and can be displayed using the Chrome web browser.
+
+**This fork adds Altium Designer:** open the output folder of an Altium OutJob in the page and assemble from it (see [Altium Designer](#altium-designer)).
 ## Table of Contents
 
 1. [About the Project](#about-the-project)
@@ -14,6 +16,7 @@ Currently InteractivePCB is designed to work with EagleCAD with minor support fo
 	1. [Building](#building)
 	1. [Installation](#installation)
 	1. [Usage](#usage)
+		1. [Altium Designer](#altium-designer)
 		1. [EagleCAD](#eaglecad)
 	1. [Branch Conventions](#branch-conventions)
 1. [Release Process](#release-process)
@@ -84,6 +87,49 @@ No installation is necessary, simply have all the following files all in a folde
 
 ### Usage
 
+
+#### Altium Designer
+
+Build the viewer once (`make` in `GUI`, or `make release` for a single file `GUI/Release/iPCB.html`), open
+`iPCB.html` in Chrome, Chromium, Edge or Firefox and click **Open Altium export folder** (or drop the folder on the
+page). Select the folder the OutJob writes, the one holding `ODB/`, `BOM/`, `Pick Place/`, ... The files are read in
+the browser; nothing is uploaded.
+
+What is used from the folder:
+
+| Output | Used for | Needed |
+|---|---|---|
+| ODB++ (extracted `odb/` folder, `.tgz` or `.zip`) | board outline, copper, silkscreen, paste, mask, drills, mechanical layers, every part with its pads and outline, part parameters | yes, for the board drawing |
+| BOM (`.xlsx` or `.csv` with a `Designator` column) | part number, description, manufacturer, supplier, **Fitted / Not Fitted**; parts missing from the BOM (fiducials, test points, mounting holes) are drawn but not listed | recommended |
+| Pick and place (`.csv` / `.txt`) | positions only, when there is no ODB++ (parts are drawn as boxes) | fallback |
+| Test point report (`*TPs.csv`) | test point table (`Tp`): name and net, click to find it on the board | optional |
+
+Assembling:
+
+- The BOM is grouped by part number with a **Placed** column. Click a row (or use the arrow keys) to highlight its
+  parts on both sides; click a part on the board to find its row and see its description above the board.
+- **Space** ticks *Placed* for the highlighted row and moves on to the next one. Placed parts are drawn green;
+  *Hide placed parts* in the menu leaves only what is still to do.
+- Ticks, layer visibility and settings are kept in the browser per board (project name, revision, variant).
+- Layers can be switched per side in the layer table (`L`); copper of the other side, paste, mask and mechanical
+  layers start hidden.
+
+The same import runs from the command line, to hand someone one file with viewer and board together:
+
+```bash
+$ cd GUI && make release
+$ node tools/altium2ipcb.js "<OutJob output folder>" --html board.html   # one self-contained page
+$ node tools/altium2ipcb.js "<OutJob output folder>" -o pcbdata.json     # data for iPCB.html next to it
+```
+
+Notes:
+
+- Positions come from ODB++. Altium writes bottom parts rotated and then mirrored although their mirror flag is
+  `N`; every computed pad is checked against the pin records of the component file and a mismatch is reported in
+  the import details.
+- ODB++ from other tools also loads (tested with a Valor ODB++ of a 1700 part board), without the Altium BOM.
+- A BOM saved as `.xls` (binary Excel) is not read; export `.xlsx` or `.csv`.
+- `make test` runs the importer tests (node only).
 
 #### EagleCAD
 

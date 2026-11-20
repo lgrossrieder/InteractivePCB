@@ -137,6 +137,8 @@ function resizeAll()
     render_canvas.ResizeCanvas(globalData.GetAllCanvas().back);
     RenderPCB(globalData.GetAllCanvas().front);
     RenderPCB(globalData.GetAllCanvas().back);
+    // Resizing clears every canvas, the highlights included.
+    drawHighlights();
 }
 
 function rerenderAll()

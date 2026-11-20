@@ -1,6 +1,7 @@
 "use strict";
 
-var Package  = require("./Package.js").Package;
+var Package    = require("./Package.js").Package;
+var globalData = require("../global.js");
 
 class PCB_Part
 {
@@ -11,6 +12,9 @@ class PCB_Part
         this.package     = new Package(iPCB_JSON_Part.package);
         this.attributes  = new Map();
         this.location    = iPCB_JSON_Part.location;
+        // Not fitted, or not listed in the BOM (fiducials, test points, mounting holes)
+        this.dnp         = !!iPCB_JSON_Part.dnp;
+        this.inBom       = (iPCB_JSON_Part.in_bom === undefined) ? true : !!iPCB_JSON_Part.in_bom;
 
         // Iterate over all attributes and add the, to attribute map.
         for(let attribute of iPCB_JSON_Part.attributes)
@@ -20,9 +24,19 @@ class PCB_Part
 
     }
 
+    IsPlaced()
+    {
+        return globalData.readStorage("checkbox_placed_" + this.name) == "true";
+    }
+
     Render(guiContext, isViewFront, isSelected)
     {
-        this.package.Render(guiContext, isViewFront, this.location, isSelected);
+        let state = {
+            selected: isSelected,
+            placed:   this.IsPlaced(),
+            dnp:      this.dnp || !this.inBom,
+        };
+        this.package.Render(guiContext, isViewFront, this.location, state);
     }
 }
 

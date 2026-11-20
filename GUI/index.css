@@ -649,3 +649,129 @@ mark.highlight {
   cursor: pointer;
   margin: 0;
 }
+
+/* Altium folder loading ------------------------------------------------------------------- */
+#FileSelect {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px;
+    flex-wrap: wrap;
+}
+
+.load-button {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    background: #f2f2f2;
+    color: #222;
+    user-select: none;
+}
+
+.load-button:hover {
+    background: #e2e2e2;
+}
+
+.load-button input[type=file] {
+    display: none;
+}
+
+.dark .load-button {
+    background: #333;
+    color: #eee;
+    border-color: #777;
+}
+
+#loadStatus {
+    font-size: 13px;
+    color: #666;
+}
+
+#partInfo {
+    font-size: 13px;
+    font-weight: bold;
+    margin-left: 12px;
+}
+
+#loadMessages {
+    font-size: 12px;
+    margin: 0 4px 4px 4px;
+    max-height: 30vh;
+    overflow: auto;
+}
+
+#loadMessages summary {
+    cursor: pointer;
+}
+
+#loadMessages.has-warnings summary {
+    color: #b36b00;
+}
+
+#emptyState {
+    position: absolute;
+    top: 90px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.empty-box {
+    max-width: 560px;
+    padding: 28px 32px;
+    border: 2px dashed #999;
+    border-radius: 10px;
+    text-align: center;
+    background: inherit;
+}
+
+.empty-box h2 {
+    margin-top: 0;
+}
+
+.load-button-big {
+    font-size: 16px;
+    padding: 10px 18px;
+    margin: 8px 0 14px 0;
+}
+
+.empty-hint {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+}
+
+body.drag-over .empty-box,
+body.drag-over #bot {
+    outline: 3px dashed #2977ff;
+    outline-offset: -6px;
+}
+
+.dark .layer_checkbox {
+    filter: invert(100%);
+}
+
+/* BOM columns: narrow checkboxes, room for long designator lists */
+.bom th.Checkboxes {
+    width: 60px;
+}
+
+.bom th.References {
+    width: 24%;
+}
+
+#bombody td {
+    text-align: left;
+}
+
+#bombody td:first-child,
+#bombody td:last-child {
+    text-align: center;
+}
