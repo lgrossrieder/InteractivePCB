@@ -151,7 +151,7 @@ class Table_LayerEntry
     UpdateActiveSpanElementColor(event)
     {
         this.activeColorSpanElement.style.backgroundColor = event.target.value;
-        colorMap.SetColor(this.layerName,event.target.value );
+        colorMap.SetColorCurrentPalette(this.layerName, event.target.value);
         render.rerenderAll();
     }
 

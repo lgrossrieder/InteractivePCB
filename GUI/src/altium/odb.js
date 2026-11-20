@@ -537,6 +537,45 @@ function layerStyle(kind, side)
     }
 }
 
+/*
+    Dark palette: the layer colours of the Altium project. Altium writes them into every features
+    file as "#Layer_Color=<TColor>", a Windows colour (0x00BBGGRR). Without it, Altium's defaults.
+*/
+function altiumLayerColor(featuresText)
+{
+    let m = featuresText.match(/^#\s*Layer_Color\s*=\s*(\d+)/m);
+    if (!m) { return null; }
+    let c = parseInt(m[1], 10);
+    let hex = (v) => ("0" + v.toString(16)).slice(-2).toUpperCase();
+    return "#" + hex(c & 255) + hex((c >> 8) & 255) + hex((c >> 16) & 255);
+}
+
+function altiumDefaultColor(kind, side)
+{
+    switch (kind)
+    {
+    case "copper":  return side === "F" ? "#FF0000" : (side === "B" ? "#0000FF" : "#BC8E00");
+    case "silk":    return side === "B" ? "#808000" : "#FFFF00";
+    case "paste":   return side === "B" ? "#800000" : "#808080";
+    case "mask":    return side === "B" ? "#FF00FF" : "#800080";
+    case "drill":   return "#009190";
+    case "outline": return "#FF00FF";
+    default:        return "#008000";
+    }
+}
+
+// Opacity of a layer in the dark palette: copper slightly see-through, mask and paste faint.
+function darkAlpha(kind)
+{
+    switch (kind)
+    {
+    case "copper": return "80";
+    case "paste":  return "90";
+    case "mask":   return "60";
+    default:       return "";
+    }
+}
+
 function round4(v) { return Math.round(v * 10000) / 10000; }
 
 // Internal shape to a pcbdata path entry on the given layer.
@@ -637,7 +676,8 @@ function convert(files, options)
         name: "Board", side: "both", visible_front: true, visible_back: true,
         paths: profile.map(s => shapeToPath(s, "Board")),
     });
-    configuration.push({ category: "color", name: "Board", value: "#1E3D26" });
+    // Board: green solder mask look in light mode, black like Altium's board area in dark mode.
+    configuration.push({ category: "color", name: "Board", value: "#1E3D26", value_dark: "#000000" });
 
     let order = { inner: 0, B: 1, F: 2, both: 3 };
     let kindOrder = { copper: 0, mask: 1, paste: 2, silk: 3, doc: 4, outline: 5, drill: 6 };
@@ -664,7 +704,8 @@ function convert(files, options)
         {
             for (let s of shapes) { if (s.t === "circle") { drillHoles.push({ x: s.x, y: s.y, r: s.r, plated: !/non[-_]?plated/i.test(name) }); } }
         }
-        pending.push({ l: l, name: name, kind: kind, side: side, shapes: shapes, row: parseInt(l.ROW, 10) || 0 });
+        let altiumColor = altiumLayerColor(text) || altiumDefaultColor(kind, side);
+        pending.push({ l: l, name: name, kind: kind, side: side, shapes: shapes, row: parseInt(l.ROW, 10) || 0, altiumColor: altiumColor });
     }
     // Draw order: inner copper, bottom, top, then documentation and drills.
     pending.sort((a, b) =>
@@ -698,7 +739,7 @@ function convert(files, options)
             visible_front: style.front, visible_back: style.back,
             paths: p.shapes.map(s => shapeToPath(s, display)),
         });
-        configuration.push({ category: "color", name: display, value: style.color });
+        configuration.push({ category: "color", name: display, value: style.color, value_dark: p.altiumColor + darkAlpha(p.kind) });
     }
 
     if (!padsAdded)

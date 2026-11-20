@@ -51,6 +51,14 @@ function setDarkMode(value)
         topmostdiv.classList.remove("dark");
     }
     globalData.writeStorage("darkmode", value);
+    document.documentElement.classList.toggle("dark-page", !!value);
+
+    // Layer colour swatches show the palette in use.
+    if (globalData.layer_list && globalData.layer_list.size > 0)
+    {
+        rightSideTable.populateRightSideScreenTable();
+        Render_RightScreenTable();
+    }
 
 
     // The layer table eye icons are inverted by the ".dark .layer_checkbox" rule in index.css
@@ -517,7 +525,7 @@ function Create_Configuration(pcbdata)
     {
         if(config.category=="color")
         {
-            colorMap.SetColor(config.name, config.value);
+            colorMap.SetColor(config.name, config.value, config.value_dark);
         }
         else if(config.category=="setting")
         {

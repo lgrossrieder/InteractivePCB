@@ -113,6 +113,8 @@ Assembling:
 - Ticks, layer visibility and settings are kept in the browser per board (project name, revision, variant).
 - Layers can be switched per side in the layer table (`L`); copper of the other side, paste, mask and mechanical
   layers start hidden.
+- Dark mode (menu) looks like Altium's dark view: black board, the project's own layer colours (read from the
+  ODB++ export), silver pads, white selection. Colours picked in the layer table apply to the current mode.
 
 The same import runs from the command line, to hand someone one file with viewer and board together:
 

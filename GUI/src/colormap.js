@@ -5,24 +5,35 @@ var globalData        = require("./global.js");
 var ColorMap = new Map(
     [
         // Light Mode, Dark Mode
-        ["Drill"                  ,["#CCCCCC"   , "#CCCCCC"]],
+        // Dark mode follows Altium's dark view: silver pads, white selection.
+        ["Drill"                  ,["#CCCCCC"   , "#101010"]],
         ["BboundingBox_Default"   ,["#878787"   , "#878787"]],
         ["BboundingBox_Placed"    ,["#40D040"   , "#40D040"]],
-        ["BboundingBox_Highlited" ,["#D04040"   , "#D04040"]],
+        ["BboundingBox_Highlited" ,["#D04040"   , "#FFFFFF"]],
         ["BboundingBox_Debug"     ,["#2977ff"   , "#2977ff"]],
-        ["Pad_Default"            ,["#B0B0B0"   , "#B0B0B0"]],
-        ["Pad_DNP"                ,["#505050"   , "#505050"]],
-        ["Pad_Pin1"               ,["#ffb629"   , "#ffb629"]],
-        ["Pad_IsHighlited"        ,["#D04040"   , "#D04040"]],
-        ["Pad_IsPlaced"           ,["#40D040"   , "#40D040"]],
+        ["Pad_Default"            ,["#B0B0B0"   , "#C0C0C0"]],
+        ["Pad_DNP"                ,["#505050"   , "#4A4A4A"]],
+        ["Pad_Pin1"               ,["#ffb629"   , "#FF8C00"]],
+        ["Pad_IsHighlited"        ,["#D04040"   , "#FFFFFF"]],
+        ["Pad_IsPlaced"           ,["#40D040"   , "#33D17A"]],
         ["Default"                ,["#878787"   , "#878787"]]
     ]);
 
 
 
-function SetColor(colorName, colorCode)
+/* colorCodeDark: colour in dark mode (default: the same as in light mode) */
+function SetColor(colorName, colorCode, colorCodeDark)
 {
-    ColorMap.set(colorName, [colorCode, colorCode]);
+    ColorMap.set(colorName, [colorCode, colorCodeDark || colorCode]);
+}
+
+/* Changes a colour for the palette in use only (layer table colour picker). */
+function SetColorCurrentPalette(colorName, colorCode)
+{
+    let entry = ColorMap.get(colorName) || [colorCode, colorCode];
+    entry = entry.slice();
+    entry[GetColorPalette()] = colorCode;
+    ColorMap.set(colorName, entry);
 }
 
 /*
@@ -145,5 +156,5 @@ function GetDrillColor()
 
 module.exports = {
     GetTraceColor, GetBoundingBoxColor, GetPadColor,
-    GetViaColor, GetDrillColor, SetColor
+    GetViaColor, GetDrillColor, SetColor, SetColorCurrentPalette
 };

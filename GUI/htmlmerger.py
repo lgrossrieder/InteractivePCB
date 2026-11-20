@@ -142,6 +142,13 @@ class HtmlMerger(HTMLParser):
     self._result += "</" + tag + ">"
 
 
+  def handle_decl(self, decl):
+    # keep <!DOCTYPE html>; without it the page renders in quirks mode (tables do not inherit colours)
+    self._result += "<!" + decl + ">"
+
+  def handle_comment(self, data):
+    pass
+
   def handle_data(self, data):
     self._result += data
 

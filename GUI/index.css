@@ -775,3 +775,134 @@ body.drag-over #bot {
 #bombody td:last-child {
     text-align: center;
 }
+
+/* =========================================================================================
+   Theme. Light: the original look. Dark: Altium Designer's dark UI (grey panels, light text,
+   black board area). The board colours themselves come from the board data (colormap.js;
+   for Altium imports the project's own layer colours in dark mode).
+   ========================================================================================= */
+#topmostdiv {
+    --bg:          #ffffff;
+    --panel:       #ffffff;
+    --text:        #111111;
+    --muted:       #666666;
+    --border:      #888888;
+    --header:      #cccccc;
+    --row-alt:     #f2f2f2;
+    --row-hl:      #ccffcc;
+    --row-hl-text: #111111;
+    --btn:         #eeeeee;
+    --btn-text:    #000000;
+    --btn-on:      #00aa00;
+    --btn-on-text: #ffffff;
+    --input:       #ffffff;
+    --canvas-bg:   #ffffff;
+    --gutter:      #dddddd;
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+#topmostdiv.dark {
+    --bg:          #2b2b2b;
+    --panel:       #333333;
+    --text:        #dcdcdc;
+    --muted:       #9a9a9a;
+    --border:      #4f4f4f;
+    --header:      #3c3c3c;
+    --row-alt:     #303030;
+    --row-hl:      #4a3f1c;
+    --row-hl-text: #ffe08a;
+    --btn:         #3c3c3c;
+    --btn-text:    #dcdcdc;
+    --btn-on:      #c79a2b;
+    --btn-on-text: #1e1e1e;
+    --input:       #1e1e1e;
+    --canvas-bg:   #1e1e1e;
+    --gutter:      #4f4f4f;
+}
+
+html.dark-page, html.dark-page body {
+    background-color: #2b2b2b;
+}
+
+#topmostdiv #top {
+    border-bottom: 2px solid var(--border);
+}
+
+#topmostdiv button {
+    background-color: var(--btn);
+    color: var(--btn-text);
+    border-color: var(--border);
+}
+
+#topmostdiv button.depressed {
+    background-color: var(--btn-on);
+    color: var(--btn-on-text);
+}
+
+#topmostdiv .bom {
+    color: var(--text);
+}
+
+#topmostdiv .bom th,
+#topmostdiv .bom td {
+    border-color: var(--border);
+}
+
+#topmostdiv .bom th {
+    background-color: var(--header);
+    color: var(--text);
+}
+
+#topmostdiv .bom tr:nth-child(even) {
+    background-color: var(--row-alt);
+}
+
+#topmostdiv .bom tr.highlighted:nth-child(n) {
+    background-color: var(--row-hl);
+    color: var(--row-hl-text);
+}
+
+#topmostdiv .searchbox,
+#topmostdiv .menu-textbox {
+    background-color: var(--input);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+#topmostdiv .menu-content {
+    background-color: var(--panel);
+    color: var(--text);
+}
+
+#topmostdiv .menu-label {
+    border-color: var(--border);
+}
+
+#topmostdiv .gutter {
+    background-color: var(--gutter);
+}
+
+#topmostdiv #frontcanvas,
+#topmostdiv #backcanvas {
+    background-color: var(--canvas-bg);
+}
+
+#topmostdiv .load-button {
+    background-color: var(--btn);
+    color: var(--btn-text);
+    border-color: var(--border);
+}
+
+#topmostdiv #loadStatus,
+#topmostdiv .empty-hint {
+    color: var(--muted);
+}
+
+#topmostdiv .fileinfo td {
+    color: var(--text);
+}
+
+#topmostdiv.dark .menubtn {
+    background-color: transparent;
+}
