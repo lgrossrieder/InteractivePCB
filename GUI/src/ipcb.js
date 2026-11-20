@@ -963,6 +963,11 @@ function InitPCB(pcbdata)
     document.getElementById("hidePlacedParts").checked = hidePlaced;
     globalData.setHidePlacedParts(hidePlaced);
 
+    // On unless switched off
+    let dimUnselected = globalData.readStorage("dimUnselected") !== "false";
+    document.getElementById("dimUnselectedCheckbox").checked = dimUnselected;
+    globalData.setDimUnselected(dimUnselected);
+
     let highlightPin1 = globalData.readStorage("highlightpin1") === "true";
     document.getElementById("highlightpin1Checkbox").checked = highlightPin1;
     globalData.setHighlightPin1(highlightPin1);

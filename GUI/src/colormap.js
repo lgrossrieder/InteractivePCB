@@ -14,8 +14,13 @@ var ColorMap = new Map(
         ["Pad_Default"            ,["#B0B0B0"   , "#C0C0C0"]],
         ["Pad_DNP"                ,["#505050"   , "#4A4A4A"]],
         ["Pad_Pin1"               ,["#ffb629"   , "#FF8C00"]],
-        ["Pad_IsHighlited"        ,["#D04040"   , "#FFFFFF"]],
-        ["Pad_IsPlaced"           ,["#40D040"   , "#33D17A"]],
+        ["Pad_IsHighlited"        ,["#E01B1B"   , "#FFFFFF"]],
+        ["Pad_IsPlaced"           ,["#1FA03A"   , "#33D17A"]],
+        // Selection marker (outline and locator ring) and the veil over the rest of the board.
+        ["Highlight_Marker"       ,["#E01B1B"   , "#00E5FF"]],
+        ["Highlight_MarkerPlaced" ,["#1FA03A"   , "#33D17A"]],
+        ["Highlight_Halo"         ,["#FFFFFF"   , "#000000"]],
+        ["Highlight_Veil"         ,["rgba(255,255,255,0.62)", "rgba(0,0,0,0.62)"]],
         ["Default"                ,["#878787"   , "#878787"]]
     ]);
 
@@ -126,6 +131,17 @@ function GetPadColor(isPin1, isHighlited, isPlaced, isDnp)
     }
 }
 
+/* Colours of the marker drawn around a selected part, and of the veil that dims the rest of the board. */
+function GetHighlightColors(isPlaced)
+{
+    let p = GetColorPalette();
+    return {
+        marker: ColorMap.get(isPlaced ? "Highlight_MarkerPlaced" : "Highlight_Marker")[p],
+        halo:   ColorMap.get("Highlight_Halo")[p],
+        veil:   ColorMap.get("Highlight_Veil")[p],
+    };
+}
+
 function GetViaColor()
 {
     let traceColorMap = ColorMap.get("Vias");
@@ -156,5 +172,5 @@ function GetDrillColor()
 
 module.exports = {
     GetTraceColor, GetBoundingBoxColor, GetPadColor,
-    GetViaColor, GetDrillColor, SetColor, SetColorCurrentPalette
+    GetViaColor, GetDrillColor, SetColor, SetColorCurrentPalette, GetHighlightColors
 };

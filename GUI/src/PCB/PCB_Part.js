@@ -38,6 +38,12 @@ class PCB_Part
         };
         this.package.Render(guiContext, isViewFront, this.location, state);
     }
+
+    /* Outline (and locator ring for small parts) around the selected part. */
+    RenderMarker(guiContext, isViewFront, withRing)
+    {
+        this.package.RenderMarker(guiContext, isViewFront, this.location, this.IsPlaced(), withRing);
+    }
 }
 
 module.exports = {

@@ -26,6 +26,14 @@ highlightpin1Checkbox.onchange=function()
     render.RenderPCB(globalData.GetAllCanvas().back);
 };
 
+const dimUnselectedCheckbox = document.getElementById("dimUnselectedCheckbox");
+dimUnselectedCheckbox.onchange = function()
+{
+    globalData.setDimUnselected(dimUnselectedCheckbox.checked);
+    globalData.writeStorage("dimUnselected", dimUnselectedCheckbox.checked);
+    render.drawHighlights();
+};
+
 const dragCheckbox = document.getElementById("dragCheckbox");
 dragCheckbox.checked=function()
 {

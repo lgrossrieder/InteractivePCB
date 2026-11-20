@@ -5,6 +5,7 @@
 var globalData         = require("./global.js");
 var render_canvas      = require("./render/render_Canvas.js");
 var pcb                = require("./pcb.js");
+var colormap           = require("./colormap.js");
 
 function DrawTraces(isViewFront, scalefactor)
 {
@@ -37,14 +38,34 @@ function DrawHighlitedModules(isViewFront, layer, scalefactor, refs)
 {
     // TODO: Global function here. GUI context should be passed as
     //       an argument to the function.
-    let guiContext = pcb.GetLayerCanvas("Highlights", isViewFront).getContext("2d")
-    // Draw selected parts on highlight layer.
-    for (let part of globalData.pcb_parts)
+    let canvas     = pcb.GetLayerCanvas("Highlights", isViewFront);
+    let guiContext = canvas.getContext("2d");
+    let selected   = globalData.pcb_parts.filter((part) => refs.includes(part.name));
+    if (selected.length == 0)
     {
-        if(refs.includes(part.name))
-        {
-            part.Render(guiContext, isViewFront, true);
-        }
+        return;
+    }
+
+    // Veil over the whole board, so the selected parts drawn above it stand out.
+    if (globalData.getDimUnselected())
+    {
+        guiContext.save();
+        guiContext.setTransform(1, 0, 0, 1, 0, 0);
+        guiContext.fillStyle = colormap.GetHighlightColors(false).veil;
+        guiContext.fillRect(0, 0, canvas.width, canvas.height);
+        guiContext.restore();
+    }
+
+    for (let part of selected)
+    {
+        part.Render(guiContext, isViewFront, true);
+    }
+    // Markers last, so that neighbouring pads do not cover them.
+    // Locator rings only for a few parts: many of them overlap and clutter the board.
+    let withRing = (selected.length <= 6);
+    for (let part of selected)
+    {
+        part.RenderMarker(guiContext, isViewFront, withRing);
     }
 }
 
@@ -66,6 +87,8 @@ function RenderPCB(canvasdict)
     DrawModules(isViewFront);
     DrawTraces (isViewFront, canvasdict.transform.s);
     DrawLayers (isViewFront, canvasdict.transform.s);
+    // RedrawCanvas cleared the highlight layer too.
+    drawHighlightsOnLayer(canvasdict);
 }
 
 function ClearCanvas()
@@ -137,8 +160,6 @@ function resizeAll()
     render_canvas.ResizeCanvas(globalData.GetAllCanvas().back);
     RenderPCB(globalData.GetAllCanvas().front);
     RenderPCB(globalData.GetAllCanvas().back);
-    // Resizing clears every canvas, the highlights included.
-    drawHighlights();
 }
 
 function rerenderAll()

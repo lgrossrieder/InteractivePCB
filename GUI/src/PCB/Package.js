@@ -78,10 +78,20 @@ class Package
             }
         }
 
-        if (onThisSide && (state.selected || globalData.getDebugMode()))
+        // Selected parts get the marker from RenderMarker instead.
+        if (onThisSide && !state.selected && globalData.getDebugMode())
         {
-            let color = colormap.GetBoundingBoxColor(state.selected, state.placed && state.selected);
+            let color = colormap.GetBoundingBoxColor(false, false);
             this.boundingBox.Render(guiContext, color);
+        }
+    }
+
+    RenderMarker(guiContext, isViewFront, location, isPlaced, withRing)
+    {
+        let onThisSide = ((location == "F") && isViewFront) || ((location == "B") && !isViewFront);
+        if (onThisSide)
+        {
+            this.boundingBox.RenderMarker(guiContext, colormap.GetHighlightColors(isPlaced), withRing);
         }
     }
 

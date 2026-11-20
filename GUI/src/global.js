@@ -496,6 +496,22 @@ function getHighlightPin1(){
 /************************************************/
 
 /*************************************************
+Dim the board around the selected parts
+*************************************************/
+let dimUnselected = true;
+
+function setDimUnselected(value)
+{
+    dimUnselected = value;
+}
+
+function getDimUnselected(){
+    return dimUnselected;
+}
+
+/************************************************/
+
+/*************************************************
 Last Clicked Ref
 *************************************************/
 let lastClickedRef;
@@ -596,6 +612,7 @@ module.exports = {
     setRemoveBOMEntries        , getRemoveBOMEntries        ,
     setAdditionalAttributes    , getAdditionalAttributes    ,
     setHighlightPin1           , getHighlightPin1           ,
+    setDimUnselected           , getDimUnselected           ,
     setLastClickedRef          , getLastClickedRef          ,
     setCombineValues           , getCombineValues           ,
     setHidePlacedParts         , getHidePlacedParts         ,
